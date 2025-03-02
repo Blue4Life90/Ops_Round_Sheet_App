@@ -16,6 +16,7 @@ class RoundItem:
     description: str
     value: str = ""
     output: str = ""
+    mode: str = ""
     id: Optional[int] = None
     section_id: Optional[int] = None
     timestamp: Optional[datetime] = None
@@ -25,7 +26,8 @@ class RoundItem:
         return {
             "description": self.description,
             "value": self.value,
-            "output": self.output
+            "output": self.output,
+            "mode": self.mode
         }
 
 @dataclass
@@ -47,9 +49,9 @@ class Section:
             "items": [item.to_dict() for item in self.items]
         }
 
-    def add_item(self, description: str, value: str = "", output: str = "") -> RoundItem:
+    def add_item(self, description: str, value: str = "", output: str = "", mode: str = "") -> RoundItem:
         """Add a new item to this section and return it."""
-        item = RoundItem(description=description, value=value, output=output)
+        item = RoundItem(description=description, value=value, output=output, mode=mode)
         self.items.append(item)
         return item
 

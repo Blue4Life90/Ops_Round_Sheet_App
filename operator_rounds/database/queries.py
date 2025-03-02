@@ -134,10 +134,12 @@ def save_round_section(unit: str, section: str, data: Dict[str, Any]) -> bool:
                             item_id = existing_items[item_desc_lower]
                             c.execute('''
                                 UPDATE round_items 
-                                SET description = ?, value = ?, output = ?
+                                SET description = ?, value = ?, output = ?, mode = ?
                                 WHERE id = ?
                             ''', (item_desc, item.get("value", "").strip(), 
-                                 item.get("output", "").strip(), item_id))
+                                 item.get("output", "").strip(), 
+                                 item.get("mode", "").strip(),
+                                 item_id))
                             
                             if st.session_state.get('debug_mode', False):
                                 st.write(f"Debug - Updated item: {item_desc}")
@@ -148,10 +150,11 @@ def save_round_section(unit: str, section: str, data: Dict[str, Any]) -> bool:
                             # Insert new item
                             c.execute('''
                                 INSERT INTO round_items 
-                                (section_id, description, value, output)
-                                VALUES (?, ?, ?, ?)
+                                (section_id, description, value, output, mode)
+                                VALUES (?, ?, ?, ?, ?)
                             ''', (section_id, item_desc, item.get("value", "").strip(), 
-                                 item.get("output", "").strip()))
+                                 item.get("output", "").strip(),
+                                 item.get("mode", "").strip()))
                             
                             if st.session_state.get('debug_mode', False):
                                 st.write(f"Debug - Inserted new item: {item_desc}")
@@ -171,10 +174,12 @@ def save_round_section(unit: str, section: str, data: Dict[str, Any]) -> bool:
                     for item in data["items"]:
                         c.execute('''
                             INSERT INTO round_items 
-                            (section_id, description, value, output)
-                            VALUES (?, ?, ?, ?)
+                            (section_id, description, value, output, mode)
+                            VALUES (?, ?, ?, ?, ?)
                         ''', (section_id, item["description"].strip(), 
-                             item.get("value", "").strip(), item.get("output", "").strip()))
+                             item.get("value", "").strip(), 
+                             item.get("output", "").strip(),
+                             item.get("mode", "").strip()))
                 
                 # Commit changes
                 conn.commit()
@@ -232,7 +237,7 @@ def load_last_round_data() -> Dict[str, Any]:
             c.execute('''
                 SELECT r.id, r.round_type, r.timestamp,
                        s.unit, s.section_name,
-                       ri.description, ri.value, ri.output
+                       ri.description, ri.value, ri.output, ri.mode
                 FROM rounds r
                 JOIN sections s ON s.round_id = r.id
                 LEFT JOIN round_items ri ON ri.section_id = s.id
@@ -263,7 +268,7 @@ def load_last_round_data() -> Dict[str, Any]:
             
             # Then process the most recent items
             for row in item_results:
-                round_id, round_type, timestamp, unit, section, desc, value, output = row
+                round_id, round_type, timestamp, unit, section, desc, value, output, mode = row
                 
                 # Add item if it exists and description is not None
                 if desc:
@@ -276,7 +281,8 @@ def load_last_round_data() -> Dict[str, Any]:
                         round_data[round_type]["units"][unit]["sections"][section]["items"].append({
                             "description": desc,
                             "value": value,
-                            "output": output
+                            "output": output,
+                            "mode": mode
                         })
                         
                         # Mark this item as added
@@ -357,7 +363,7 @@ def get_round_by_id(round_id: int) -> Optional[Round]:
                 
                 # Get all items for this section
                 c.execute('''
-                    SELECT id, description, value, output, timestamp
+                    SELECT id, description, value, output, mode, timestamp
                     FROM round_items
                     WHERE section_id = ?
                     ORDER BY id
@@ -366,7 +372,7 @@ def get_round_by_id(round_id: int) -> Optional[Round]:
                 item_results = c.fetchall()
                 
                 for item_row in item_results:
-                    item_id, description, value, output, item_timestamp = item_row
+                    item_id, description, value, output, mode, item_timestamp = item_row
                     
                     # Create the item object
                     item = RoundItem(
@@ -374,6 +380,7 @@ def get_round_by_id(round_id: int) -> Optional[Round]:
                         description=description,
                         value=value,
                         output=output,
+                        mode=mode,
                         section_id=section_id,
                         timestamp=item_timestamp
                     )

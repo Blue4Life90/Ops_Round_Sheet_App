@@ -5,6 +5,7 @@ This module provides the interface for operators to complete rounds
 by filling in values for each section in a step-by-step process.
 """
 import streamlit as st
+import logging
 import sqlite3
 import traceback
 from operator_rounds.database.connection import get_db_connection
@@ -80,6 +81,15 @@ def render_round_completion(unit):
     
     # Get the current section index for progress tracking
     current_index = sections_list.index(current_section)
+
+    if st.session_state.get('debug_mode', False):
+        st.write(f"Debug - Current section (raw): '{current_section}'")
+        st.write(f"Debug - Section in list? {'Yes' if current_section in sections_list else 'No'}")
+        
+        # Print exact string representations to spot difference
+        st.write(f"Debug - Current section (repr): {repr(current_section)}")
+        for i, s in enumerate(sections_list):
+            st.write(f"Debug - sections_list[{i}] (repr): {repr(s)}")
     
     # Display the current section header
     st.subheader(f"Completing Round: {current_section}")
@@ -104,6 +114,7 @@ def render_round_completion(unit):
             item_key = item["description"].replace(" ", "_").lower()
             st.session_state[form_values_key][f"value_{item_key}"] = item.get("value", "")
             st.session_state[form_values_key][f"output_{item_key}"] = item.get("output", "")
+            st.session_state[form_values_key][f"mode_{item_key}"] = item.get("mode", "")
     
     # Start the form for data entry
     with st.form(form_key):
@@ -123,9 +134,18 @@ def render_round_completion(unit):
                     if not valid and st.session_state.get('debug_mode', False):
                         st.warning(f"Previous value may be invalid: {error}")
                 
-                # Create input fields for value and output
+                # Create input fields for value, output, and mode
                 value_key = f"value_{base_key}"
+                if st.session_state.get('debug_mode', False):
+                    st.write(f"Debug - {value_key}")
+
                 output_key = f"output_{base_key}"
+                if st.session_state.get('debug_mode', False):
+                    st.write(f"Debug - {output_key}")
+
+                mode_key = f"mode_{base_key}"
+                if st.session_state.get('debug_mode', False):
+                    st.write(f"Debug - {mode_key}")
                 
                 # Use session state to maintain values between reruns
                 value = st.text_input(
@@ -139,10 +159,27 @@ def render_round_completion(unit):
                     value=st.session_state[form_values_key].get(output_key, item.get("output", "")),
                     key=output_key
                 )
+
+                mode_options = ["", "Manual", "Auto", "Cascade"]
+                current_mode = st.session_state[form_values_key].get(mode_key, item.get("mode", ""))
+                
+                # Find the index of the current mode, or 0 if not found
+                try:
+                    mode_index = mode_options.index(current_mode)
+                except ValueError:
+                    mode_index = 0
+                    
+                mode = st.selectbox(
+                    "Control Mode (if applicable)",
+                    options=mode_options,
+                    index=mode_index,
+                    key=mode_key
+                )
                 
                 # Store in session state as user types
                 st.session_state[form_values_key][value_key] = value
                 st.session_state[form_values_key][output_key] = output
+                st.session_state[form_values_key][mode_key] = mode
                 
             except Exception as e:
                 st.error(str(e))
@@ -154,7 +191,8 @@ def render_round_completion(unit):
             updated_items.append({
                 "description": item["description"],
                 "value": value,
-                "output": output
+                "output": output,
+                "mode": mode
             })
         
         # Handle navigation and form submission
@@ -204,6 +242,7 @@ def handle_section_form_submission(unit, current_section, sections, sections_lis
         if validation_errors:
             for error in validation_errors:
                 st.error(error)
+                logging.error(error)
             return
         
         # Save the current section data
@@ -218,9 +257,15 @@ def handle_section_form_submission(unit, current_section, sections, sections_lis
         st.session_state.unit_sections[unit]['completed_sections'].add(current_section)
         
         if current_index < len(sections_list) - 1:
+            if st.session_state.get('debug_mode', False):
+                st.write(f"Debug - sections list: {sections_list}")
+                st.write(f"Debug - TRUE")
+
             # Move to next section
             next_section = sections_list[current_index + 1]
             st.session_state.unit_sections[unit]['current_section'] = next_section
+            if st.session_state.get('debug_mode', False):
+                st.write(f"Debug - next section: {next_section}")
             
             if st.session_state.get('debug_mode', False):
                 st.write(f"Debug - Moving to next section: {next_section}")
@@ -231,6 +276,8 @@ def handle_section_form_submission(unit, current_section, sections, sections_lis
                 st.session_state[next_form_key] = {}
             
             st.success(f"Section '{current_section}' completed. Moving to '{next_section}'")
+            if st.session_state.get('debug_mode', False):
+                st.write(f"Debug - next form key: {next_form_key}")
             st.rerun()
         else:
             # This was the last section, complete the round
@@ -241,6 +288,7 @@ def handle_section_form_submission(unit, current_section, sections, sections_lis
             # Don't reset current_round_id here as it's needed for other operations
             
             st.success("Round completed successfully!")
+
             st.rerun()
             
     except Exception as e:
@@ -248,3 +296,4 @@ def handle_section_form_submission(unit, current_section, sections, sections_lis
         if st.session_state.get('debug_mode', False):
             st.write("Debug - Exception details:")
             st.write(traceback.format_exc())
+            logging.error(e)

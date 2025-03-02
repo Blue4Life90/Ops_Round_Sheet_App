@@ -37,6 +37,20 @@ def render_sidebar():
         else:
             render_operator_info()
 
+        st.write("---")
+        st.write("### Control Mode Colors")
+        st.markdown(
+            """
+            <div style="padding: 5px; background-color: #FFEB3B; margin-bottom: 5px; color: #000000;">
+            <strong>Manual</strong> - Valve in MAN control
+            </div>
+            <div style="padding: 5px; background-color: #4bf252; margin-bottom: 5px; color: #000000;">
+            <strong>Cascade</strong> - Valve in CASC control
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+
 def render_operator_login_form():
     """
     Render the operator login form for collecting operator name and shift.
@@ -122,10 +136,13 @@ def process_pending_sections(round_id):
                         for item in section_data.get("items", []):
                             c.execute('''
                                 INSERT INTO round_items 
-                                (section_id, description, value, output)
-                                VALUES (?, ?, ?, ?)
-                            ''', (section_id, item.get("description", ""), 
-                                item.get("value", ""), item.get("output", "")))
+                                (section_id, description, value, output, mode)
+                                VALUES (?, ?, ?, ?, ?)
+                            ''', (section_id, 
+                                  item.get("description", ""), 
+                                  item.get("value", ""), 
+                                  item.get("output", ""),
+                                  item.get("mode", "")))
                         
                         conn.commit()
                     except sqlite3.Error as e:

@@ -103,7 +103,7 @@ def export_round_to_csv(round_id):
             
             # Now get the round items with more flexible query to ensure we get data
             c.execute('''
-                SELECT s.unit, s.section_name, ri.description, ri.value, ri.output
+                SELECT s.unit, s.section_name, ri.description, ri.value, ri.output, ri.mode
                 FROM sections s
                 JOIN round_items ri ON ri.section_id = s.id
                 WHERE s.round_id = ?
@@ -138,7 +138,8 @@ def export_round_to_csv(round_id):
                         row.get("Section", ""),
                         row.get("Item Description", ""),
                         row.get("Value", ""),
-                        row.get("Output", "")
+                        row.get("Output", ""),
+                        row.get("Mode", "")
                     ))
                 
                 # Also create some basic round info if we don't have it
@@ -153,7 +154,7 @@ def export_round_to_csv(round_id):
             round_type, operator_name, shift, timestamp = round_info
             
             # Create a DataFrame
-            df = pd.DataFrame(items, columns=["Unit", "Section", "Item Description", "Value", "Output"])
+            df = pd.DataFrame(items, columns=["Unit", "Section", "Item Description", "Value", "Output", "Mode"])
             
             # Add metadata
             if st.session_state.get('include_metadata', True):
@@ -167,25 +168,24 @@ def export_round_to_csv(round_id):
                 ], columns=["Metadata", "Value"])
                 
                 # Combine metadata and data with a separator row
-                separator_df = pd.DataFrame([["---", "---", "---", "---", "---"]], 
-                                           columns=df.columns)
+                separator_df = pd.DataFrame([["---", "---", "---", "---", "---", "---"]], columns=df.columns)
                 header_df = pd.DataFrame([df.columns.tolist()], columns=df.columns)
                 
                 # Convert metadata to match main DataFrame structure
                 expanded_metadata = pd.DataFrame([
-                    [metadata_df.iloc[0, 1], "", "", "", ""],  # Round ID
-                    [metadata_df.iloc[1, 1], "", "", "", ""],  # Round Type
-                    [metadata_df.iloc[2, 1], "", "", "", ""],  # Operator
-                    [metadata_df.iloc[3, 1], "", "", "", ""],  # Shift
-                    [metadata_df.iloc[4, 1], "", "", "", ""]   # Timestamp
+                    [metadata_df.iloc[0, 1], "", "", "", "", ""],  # Round ID
+                    [metadata_df.iloc[1, 1], "", "", "", "", ""],  # Round Type
+                    [metadata_df.iloc[2, 1], "", "", "", "", ""],  # Operator
+                    [metadata_df.iloc[3, 1], "", "", "", "", ""],  # Shift
+                    [metadata_df.iloc[4, 1], "", "", "", "", ""]   # Timestamp
                 ], columns=df.columns)
                 
                 metadata_headers = pd.DataFrame([
-                    ["Round ID", "", "", "", ""],
-                    ["Round Type", "", "", "", ""],
-                    ["Operator", "", "", "", ""],
-                    ["Shift", "", "", "", ""],
-                    ["Timestamp", "", "", "", ""]
+                    ["Round ID", "", "", "", "", ""],
+                    ["Round Type", "", "", "", "", ""],
+                    ["Operator", "", "", "", "", ""],
+                    ["Shift", "", "", "", "", ""],
+                    ["Timestamp", "", "", "", "", ""]
                 ], columns=df.columns)
                 
                 # Create final DataFrame with metadata at the top
