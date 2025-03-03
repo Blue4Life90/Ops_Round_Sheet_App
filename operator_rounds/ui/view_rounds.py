@@ -157,7 +157,8 @@ def build_rounds_query(date_filter, round_type, operator, start_date=None, end_d
             s.section_name,
             ri.description,
             ri.value,
-            ri.output
+            ri.output,
+            ri.mode
         FROM rounds r
         JOIN operators o ON r.operator_id = o.id
         JOIN sections s ON s.round_id = r.id
@@ -212,7 +213,7 @@ def process_rounds_data(results):
     rounds_data = {}
     
     for row in results:
-        round_id, round_type, operator, shift, timestamp, unit, section, desc, value, output = row
+        round_id, round_type, operator, shift, timestamp, unit, section, desc, value, output, mode = row
         
         # Initialize round if not exists
         if round_id not in rounds_data:
@@ -237,7 +238,8 @@ def process_rounds_data(results):
         rounds_data[round_id]["units"][unit][section].append({
             "description": desc,
             "value": value,
-            "output": output
+            "output": output,
+            "mode": mode
         })
     
     return rounds_data
@@ -290,7 +292,7 @@ def display_rounds(rounds_data):
             
             # Create tabular data for this round
             table_data = []
-            
+
             for unit, sections in round_data["units"].items():
                 for section, items in sections.items():
                     for item in items:
@@ -299,7 +301,8 @@ def display_rounds(rounds_data):
                             "Section": section,
                             "Item Description": item["description"],
                             "Value": item["value"],
-                            "Output": item["output"]
+                            "Output": item["output"],
+                            "Mode": item["mode"]
                         })
             
             # Store table data in session state for potential export
@@ -308,7 +311,27 @@ def display_rounds(rounds_data):
             # Display as dataframe
             if table_data:
                 df = pd.DataFrame(table_data)
-                st.dataframe(df, use_container_width=True)
+                
+                # Make sure the Mode column exists
+                if 'Mode' not in df.columns:
+                    df['Mode'] = ""
+                
+                # Define a row styling function
+                def style_row(row):
+                    if row['Mode'] == 'Manual':
+                        return ['background-color: rgba(255, 200, 87, 0.5); font-weight: bold;'] * len(row)
+                    elif row['Mode'] == 'Cascade':
+                        return ['background-color: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif row['Mode'] == 'Auto-Init':
+                        return ['background-color: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif row['Mode'] == 'B-Cascade':
+                        return ['background-color: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'] * len(row)
+                    return [''] * len(row)
+                
+                # Apply styling row by row
+                styled_df = df.style.apply(style_row, axis=1)
+                
+                st.dataframe(styled_df, use_container_width=True)
             else:
                 st.info("No items found for this round.")
 
@@ -351,7 +374,7 @@ def render_round_details(round_id):
             
             # Get all items for this round
             c.execute("""
-                SELECT s.unit, s.section_name, ri.description, ri.value, ri.output
+                SELECT s.unit, s.section_name, ri.description, ri.value, ri.output, ri.mode
                 FROM sections s
                 JOIN round_items ri ON ri.section_id = s.id
                 WHERE s.round_id = ?
@@ -367,7 +390,7 @@ def render_round_details(round_id):
             # Process items by unit and section
             units = {}
             for item in items:
-                unit, section, desc, value, output = item
+                unit, section, desc, value, output, mode = item
                 
                 if unit not in units:
                     units[unit] = {}
@@ -378,7 +401,8 @@ def render_round_details(round_id):
                 units[unit][section].append({
                     "description": desc,
                     "value": value,
-                    "output": output
+                    "output": output,
+                    "mode": mode
                 })
             
             # Display units in tabs
@@ -391,7 +415,30 @@ def render_round_details(round_id):
                         with st.expander(section_name, expanded=True):
                             # Create dataframe for items
                             df = pd.DataFrame(section_items)
-                            st.dataframe(df, use_container_width=True)
+
+                            # Create dataframe for items
+                            df = pd.DataFrame(section_items)
+
+                            # Make sure the mode column exists
+                            if 'mode' not in df.columns:
+                                df['mode'] = ""
+
+                            # Define a row styling function
+                            def style_row(row):
+                                if row['mode'] == 'Manual':
+                                    return ['background-color: rgba(255, 200, 87, 0.5); font-weight: bold;'] * len(row)
+                                elif row['mode'] == 'Cascade':
+                                    return ['background-color: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'] * len(row)
+                                elif row['mode'] == 'Auto-Init':
+                                    return ['background-color: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'] * len(row)
+                                elif row['mode'] == 'B-Cascade':
+                                    return ['background-color: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'] * len(row)
+                                return [''] * len(row)
+
+                            # Apply styling row by row
+                            styled_df = df.style.apply(style_row, axis=1)
+
+                            st.dataframe(styled_df, use_container_width=True)
             
             # Export option
             csv_data, filename = export_round_to_csv(round_id)
@@ -408,3 +455,4 @@ def render_round_details(round_id):
         if st.session_state.get('debug_mode', False):
             st.write(f"Debug - Database error: {str(e)}")
             st.write(traceback.format_exc())
+

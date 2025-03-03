@@ -124,7 +124,8 @@ def create_item_form(unit_name, section_name, item=None, form_key=None):
         st.session_state[form_state_key] = {
             "description": item.get("description", "") if item else "",
             "value": item.get("value", "") if item else "",
-            "output": item.get("output", "") if item else ""
+            "output": item.get("output", "") if item else "",
+            "mode": item.get("mode", "") if item else ""
         }
     
     with st.form(key=form_key):
@@ -148,11 +149,30 @@ def create_item_form(unit_name, section_name, item=None, form_key=None):
             value=st.session_state[form_state_key]["output"],
             key=f"out_{form_key}"
         )
+
+
+        # Add mode selector for editing
+        mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
+        current_mode = st.session_state[form_state_key].get("mode", "")
+        
+        # Find the index of the current mode, or 0 if not found
+        try:
+            current_index = mode_options.index(current_mode)
+        except ValueError:
+            current_index = 0
+            
+        mode = st.selectbox(
+            "Control Mode (if applicable)",
+            options=mode_options,
+            index=current_index,
+            key=f"mode_{form_key}"
+        )
         
         # Update session state as user types
         st.session_state[form_state_key]["description"] = description
         st.session_state[form_state_key]["value"] = value
         st.session_state[form_state_key]["output"] = output
+        st.session_state[form_state_key]["mode"] = mode
         
         # Form buttons - different labels based on edit vs add
         submit_label = "Update Item" if item else "Add Item"
@@ -169,7 +189,8 @@ def create_item_form(unit_name, section_name, item=None, form_key=None):
         st.session_state[form_state_key] = {
             "description": "",
             "value": "",
-            "output": ""
+            "output": "",
+            "mode": ""
         }
         return (True, {"action": "cancel"})
     
@@ -188,7 +209,8 @@ def create_item_form(unit_name, section_name, item=None, form_key=None):
                 "data": {
                     "description": description.strip(),
                     "value": value.strip(),
-                    "output": output.strip()
+                    "output": output.strip(),
+                    "mode": mode.strip()
                 },
                 "is_edit": bool(item)
             }
@@ -198,7 +220,8 @@ def create_item_form(unit_name, section_name, item=None, form_key=None):
                 st.session_state[form_state_key] = {
                     "description": "",
                     "value": "",
-                    "output": ""
+                    "output": "",
+                    "mode": ""
                 }
             
             return (True, form_data)
@@ -240,6 +263,7 @@ def create_multi_item_form(unit_name, section_name, items, form_key=None):
             item_key = item["description"].replace(" ", "_").lower()
             st.session_state[form_values_key][f"value_{item_key}"] = item.get("value", "")
             st.session_state[form_values_key][f"output_{item_key}"] = item.get("output", "")
+            st.session_state[form_values_key][f"mode_{item_key}"] = item.get("mode", "")
     
     with st.form(form_key):
         updated_items = []
@@ -251,6 +275,7 @@ def create_multi_item_form(unit_name, section_name, items, form_key=None):
             base_key = item['description'].replace(" ", "_").lower()
             value_key = f"value_{base_key}"
             output_key = f"output_{base_key}"
+            mode_key = f"mode_{base_key}"
             
             # Create input fields with session state
             value = st.text_input(
@@ -264,16 +289,35 @@ def create_multi_item_form(unit_name, section_name, items, form_key=None):
                 value=st.session_state[form_values_key].get(output_key, item.get("output", "")),
                 key=f"{form_key}_{output_key}"
             )
+
+            # Add mode selector for editing
+            mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
+            current_mode = st.session_state[form_values_key].get(mode_key, item.get("mode", ""))
+            
+            # Find the index of the current mode, or 0 if not found
+            try:
+                current_index = mode_options.index(current_mode)
+            except ValueError:
+                current_index = 0
+                
+            mode = st.selectbox(
+                "Control Mode (if applicable)",
+                options=mode_options,
+                index=current_index,
+                key=f"{form_key}_{mode_key}"
+            )
             
             # Store in session state
             st.session_state[form_values_key][value_key] = value
             st.session_state[form_values_key][output_key] = output
+            st.session_state[form_values_key][mode_key] = mode
             
             # Add to updated items
             updated_items.append({
                 "description": item["description"],
                 "value": value,
-                "output": output
+                "output": output,
+                "mode": mode
             })
             
             st.markdown("---")
@@ -359,9 +403,13 @@ def save_item_to_database(unit_name, section_name, item_data):
                     item_id = item_result[0]
                     c.execute('''
                         UPDATE round_items 
-                        SET description = ?, value = ?, output = ?
+                        SET description = ?, value = ?, output = ?, mode = ?
                         WHERE id = ?
-                    ''', (new_desc, item_data["value"], item_data["output"], item_id))
+                    ''', (new_desc, 
+                          item_data["value"], 
+                          item_data["output"], 
+                          item_data["mode"], 
+                          item_id))
                     
                     conn.commit()
                     return (True, f"Item '{new_desc}' updated successfully")
@@ -381,9 +429,12 @@ def save_item_to_database(unit_name, section_name, item_data):
                 
                 # Insert new item
                 c.execute('''
-                    INSERT INTO round_items (section_id, description, value, output)
-                    VALUES (?, ?, ?, ?)
-                ''', (section_id, new_desc, item_data["value"], item_data["output"]))
+                    INSERT INTO round_items (section_id, description, value, output, mode)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (section_id, new_desc, 
+                      item_data["value"], 
+                      item_data["output"], 
+                      item_data["mode"]))
                 
                 conn.commit()
                 return (True, f"Item '{new_desc}' added successfully")
@@ -399,3 +450,4 @@ def save_item_to_database(unit_name, section_name, item_data):
             st.write(f"Debug - Error: {str(e)}")
             st.write(traceback.format_exc())
         return (False, f"Error: {str(e)}")
+    

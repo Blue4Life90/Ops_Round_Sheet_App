@@ -12,8 +12,8 @@ from typing import Dict, List, Any
 # Application metadata
 APP_NAME = "Operator Rounds Tracking"
 APP_VERSION = "1.0.0"
-APP_AUTHOR = "Your Company"
-APP_DESCRIPTION = "A Streamlit application for tracking operator rounds in industrial facilities."
+APP_AUTHOR = "MDGL"
+APP_DESCRIPTION = "A Streamlit application for tracking operator rounds in FCC Cracking 1."
 
 # Database configuration
 DATABASE = {
@@ -69,9 +69,10 @@ ROUND_TEMPLATES = {
     }
 }
 
+
 # UI Customization
 UI = {
-    "primary_color": "#4682B4",  # Primary theme color (Steel Blue)
+    "primary_color": "#272553",  # Primary theme color (Steel Blue)
     "secondary_color": "#FF8C00",  # Secondary accent color (Dark Orange)
     "sidebar_width": "medium",  # Sidebar width: "small", "medium", or "large"
     "max_content_width": 1200,  # Maximum width of content area in pixels

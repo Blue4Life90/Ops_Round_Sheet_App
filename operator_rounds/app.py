@@ -5,6 +5,7 @@ A Streamlit application for tracking operator rounds in industrial facilities.
 """
 import streamlit as st
 from operator_rounds.database.schema import init_db
+from operator_rounds.database.schema import add_mode_column_to_round_items
 from operator_rounds.utils.state import init_session_state
 from operator_rounds.ui.sidebar import render_sidebar
 from operator_rounds.ui.view_rounds import view_saved_rounds
@@ -18,6 +19,9 @@ st.set_page_config(page_title="Operator Rounds Tracking", layout="wide")
 
 # Initialize database and session state
 init_db()
+
+mode_column_success, mode_column_message = add_mode_column_to_round_items()
+
 init_session_state()
 
 # Debug toggle (keep in main app.py)
@@ -27,6 +31,9 @@ else:
     st.session_state.debug_mode = False
 
 st.title("Operator Rounds Tracking")
+
+if st.session_state.get('debug_mode', False) and mode_column_success:
+    st.write(f"Debug - {mode_column_message}")
 
 # Render the sidebar
 render_sidebar()

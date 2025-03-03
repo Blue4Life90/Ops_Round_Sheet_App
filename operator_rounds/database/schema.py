@@ -2,6 +2,27 @@
 import sqlite3
 from operator_rounds.database.connection import get_db_connection
 
+def add_mode_column_to_round_items():
+    """Add mode column to round_items table if it doesn't exist yet"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Check if the column already exists
+            c.execute("PRAGMA table_info(round_items)")
+            columns = [info[1] for info in c.fetchall()]
+            
+            if 'mode' not in columns:
+                # Add the column
+                c.execute("ALTER TABLE round_items ADD COLUMN mode TEXT")
+                conn.commit()
+                return True, "Mode column added successfully"
+            else:
+                return True, "Mode column already exists"
+                
+    except sqlite3.Error as e:
+        return False, f"Database error: {str(e)}"
+
 def init_db():
     """Initialize SQLite database with necessary tables"""
     try:
@@ -49,6 +70,7 @@ def init_db():
                     description TEXT NOT NULL,
                     value TEXT,
                     output TEXT,
+                    mode TEXT,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (section_id) REFERENCES sections (id)
                 )
@@ -60,3 +82,4 @@ def init_db():
     except sqlite3.Error as e:
         print(f"Database initialization error: {str(e)}")
         return False
+    

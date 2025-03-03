@@ -45,6 +45,7 @@ def render_section_editor(unit, section):
                 description = st.text_input("Description", value=item["description"])
                 value = st.text_input("Value", value=item.get("value", ""))
                 output = st.text_input("Output", value=item.get("output", ""))
+                mode = st.text_input("Mode", value=item.get("mode", ""))
                 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -59,7 +60,8 @@ def render_section_editor(unit, section):
                             section_data["items"][selected_item] = {
                                 "description": description,
                                 "value": value,
-                                "output": output
+                                "output": output,
+                                "mode": mode
                             }
                             st.success("Item updated")
                             st.rerun()
@@ -135,20 +137,62 @@ def render_section_content(unit_name, section_name, section_data):
         try:
             df = pd.DataFrame(items)
             if not df.empty:
+                # Make sure the mode column exists (even if empty)
+                if 'mode' not in df.columns:
+                    df['mode'] = ""
+                
+                # Create a styling function that returns a proper DataFrame
+                def highlight_mode(val, prop='background-color'):
+                    if val == 'Manual':
+                        return f'{prop}: rgba(255, 200, 87, 0.5); font-weight: bold; color: white;'  # Yellow
+                    elif val == 'Cascade':
+                        return f'{prop}: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'  # Green
+                    elif val == 'Auto-Init':
+                        return f'{prop}: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'  # Soft-Purple
+                    elif val == 'B-Cascade':
+                        return f'{prop}: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'  # Bright Turquoise
+                    return ''
+                
+                # Apply styling using a standard pandas approach
+                styled_df = df.style.map(
+                    lambda x: highlight_mode(x),
+                    subset=['mode']
+                )
+                
+                # Add row styling for better visibility
+                def highlight_row(row):
+                    mode = row.get('mode', '')
+                    if mode == 'Manual':
+                        return ['background-color: rgba(255, 200, 87, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif mode == 'Cascade':
+                        return ['background-color: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif mode == 'Auto-Init':
+                        return ['background-color: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif mode == 'B-Cascade':
+                        return ['background-color: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'] * len(row)
+                    return [''] * len(row)
+                
+                styled_df = styled_df.apply(highlight_row, axis=1)
+                
                 st.dataframe(
-                    df,
+                    styled_df,
                     use_container_width=True,
                     hide_index=True,
                     column_config={
                         "description": "Item Description",
                         "value": "Last Value",
-                        "output": "Last Output"
+                        "output": "Last Output",
+                        "mode": "Control Mode"
                     }
                 )
             else:
                 st.info("No items to display.")
         except Exception as e:
             st.error(f"Error displaying items: {str(e)}")
+            if st.session_state.get('debug_mode', False):
+                import traceback
+                st.write("Debug - Exception with dataframe display:")
+                st.write(traceback.format_exc())
 
 def render_add_item_form(unit_name, section_name, section_data):
     """
@@ -170,7 +214,8 @@ def render_add_item_form(unit_name, section_name, section_data):
         st.session_state[form_input_key] = {
             "description": "",
             "value": "",
-            "output": ""
+            "output": "",
+            "mode": ""
         }
     
     with st.form(key=form_key):
@@ -194,6 +239,23 @@ def render_add_item_form(unit_name, section_name, section_data):
             value=st.session_state[form_input_key]["output"],
             key=f"out_{form_input_key}"
         )
+
+        # Add mode selector for all items - keeping it optional
+        mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
+        current_mode = st.session_state[form_input_key].get("mode", "")
+        
+        # Find the index of the current mode, or 0 if not found
+        try:
+            current_index = mode_options.index(current_mode)
+        except ValueError:
+            current_index = 0
+            
+        mode = st.selectbox(
+            "Control Mode (if applicable)",
+            options=mode_options,
+            index=current_index,
+            key=f"mode_{form_input_key}"
+        )
         
         # Simplified button logic with clear debug output
         submitted = st.form_submit_button("Save Item")
@@ -206,11 +268,11 @@ def render_add_item_form(unit_name, section_name, section_data):
     # Handle form submission outside the form
     process_add_item_form_submission(
         submitted, canceled, unit_name, section_name, 
-        description, value, output, section_data, form_input_key
+        description, value, output, mode, section_data, form_input_key
     )
 
 def process_add_item_form_submission(submitted, canceled, unit_name, section_name, 
-                                     description, value, output, section_data, form_input_key):
+                                     description, value, output, mode, section_data, form_input_key):
     """
     Process the submission of the add item form.
     
@@ -222,6 +284,7 @@ def process_add_item_form_submission(submitted, canceled, unit_name, section_nam
         description (str): The item description
         value (str): The item value
         output (str): The item output
+        mode (str): The item mode
         section_data (dict): The section data
         form_input_key (str): The key for the form inputs in session state
     """
@@ -231,11 +294,13 @@ def process_add_item_form_submission(submitted, canceled, unit_name, section_nam
             st.write(f"Debug - Description: {description}")
             st.write(f"Debug - Value: {value}")
             st.write(f"Debug - Output: {output}")
+            st.write(f"Debug - Mode: {mode}")
         
         # Update session state with the form values
         st.session_state[form_input_key]["description"] = description
         st.session_state[form_input_key]["value"] = value
         st.session_state[form_input_key]["output"] = output
+        st.session_state[form_input_key]["mode"] = mode
         
         # Process the submission
         try:
@@ -294,9 +359,13 @@ def process_add_item_form_submission(submitted, canceled, unit_name, section_nam
                             
                             c.execute('''
                                 INSERT INTO round_items 
-                                (section_id, description, value, output)
-                                VALUES (?, ?, ?, ?)
-                            ''', (section_id, description.strip(), value.strip(), output.strip()))
+                                (section_id, description, value, output, mode)
+                                VALUES (?, ?, ?, ?, ?)
+                            ''', (section_id, 
+                                  description.strip(), 
+                                  value.strip(), 
+                                  output.strip(),
+                                  mode.strip()))
                             
                             # Get the new item ID
                             item_id = c.lastrowid
@@ -307,7 +376,8 @@ def process_add_item_form_submission(submitted, canceled, unit_name, section_nam
                             section_data["items"].append({
                                 "description": description.strip(),
                                 "value": value.strip(),
-                                "output": output.strip()
+                                "output": output.strip(),
+                                "mode": mode.strip()
                             })
                             
                             # Commit the transaction
@@ -320,7 +390,8 @@ def process_add_item_form_submission(submitted, canceled, unit_name, section_nam
                             st.session_state[form_input_key] = {
                                 "description": "",
                                 "value": "",
-                                "output": ""
+                                "output": "",
+                                "mode": ""
                             }
                             
                             # Hide the form
@@ -359,7 +430,8 @@ def process_add_item_form_submission(submitted, canceled, unit_name, section_nam
         st.session_state[form_input_key] = {
             "description": "",
             "value": "",
-            "output": ""
+            "output": "",
+            "mode": ""
         }
         st.session_state.adding_item = None
         st.rerun()
@@ -367,7 +439,7 @@ def process_add_item_form_submission(submitted, canceled, unit_name, section_nam
 def render_edit_items_interface(unit_name, section_name, section_data, items):
     """
     Render the interface for editing multiple items in a section.
-    
+
     Args:
         unit_name (str): The name of the unit
         section_name (str): The name of the section
@@ -384,7 +456,8 @@ def render_edit_items_interface(unit_name, section_name, section_data, items):
             st.session_state[form_state_key] = {
                 "description": item["description"],
                 "value": item.get("value", ""),
-                "output": item.get("output", "")
+                "output": item.get("output", ""),
+                "mode": item.get("mode", "")
             }
         
         with st.expander(f"Edit: {item['description']}", expanded=False):
@@ -407,11 +480,28 @@ def render_edit_items_interface(unit_name, section_name, section_data, items):
                     value=st.session_state[form_state_key]["output"],
                     key=f"out_{form_state_key}"
                 )
+
+                mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
+                current_mode = st.session_state[form_state_key].get("mode", "")
+                
+                # Find the index of the current mode, or 0 if not found
+                try:
+                    current_index = mode_options.index(current_mode)
+                except ValueError:
+                    current_index = 0
+                    
+                edited_mode = st.selectbox(
+                    "Control Mode (if applicable)",
+                    options=mode_options,
+                    index=current_index,
+                    key=f"mode_{form_state_key}"
+                )
                 
                 # Update session state as user types
                 st.session_state[form_state_key]["description"] = edited_desc
                 st.session_state[form_state_key]["value"] = edited_value
                 st.session_state[form_state_key]["output"] = edited_output
+                st.session_state[form_state_key]["mode"] = edited_mode
                 
                 col1, col2 = st.columns([1, 1])
                 with col1:
@@ -428,7 +518,7 @@ def render_edit_items_interface(unit_name, section_name, section_data, items):
             # Process edit form submission outside the form
             process_edit_item_form_submission(
                 save_changes, delete_item, unit_name, section_name, 
-                section_data, idx, edited_desc, edited_value, edited_output, 
+                section_data, idx, edited_desc, edited_value, edited_output, edited_mode, 
                 form_state_key
             )
     
@@ -438,7 +528,7 @@ def render_edit_items_interface(unit_name, section_name, section_data, items):
 
 def process_edit_item_form_submission(save_changes, delete_item, unit_name, section_name, 
                                      section_data, idx, edited_desc, edited_value, edited_output, 
-                                     form_state_key):
+                                     edited_mode, form_state_key):
     """
     Process the submission of an edit item form.
     
@@ -452,12 +542,13 @@ def process_edit_item_form_submission(save_changes, delete_item, unit_name, sect
         edited_desc (str): The edited description
         edited_value (str): The edited value
         edited_output (str): The edited output
+        edited_mode (str): The edited mode
         form_state_key (str): The key for the form state in session state
     """
     if save_changes:
         if st.session_state.get('debug_mode', False):
             st.write("Debug - Save Changes clicked for item:", idx)
-            st.write(f"Debug - New values: {edited_desc}, {edited_value}, {edited_output}")
+            st.write(f"Debug - New values: {edited_desc}, {edited_value}, {edited_output}, {edited_mode}")
             st.write(f"Debug - Current round ID: {st.session_state.current_round_id}")
             st.write(f"Debug - Unit name: '{unit_name}'")
             st.write(f"Debug - Section name: '{section_name}'")
@@ -483,7 +574,8 @@ def process_edit_item_form_submission(save_changes, delete_item, unit_name, sect
             section_data["items"][idx] = {
                 "description": edited_desc.strip(),
                 "value": edited_value.strip(),
-                "output": edited_output.strip()
+                "output": edited_output.strip(),
+                "mode": edited_mode
             }
             
             try:
@@ -544,9 +636,13 @@ def process_edit_item_form_submission(save_changes, delete_item, unit_name, sect
                             
                             c.execute('''
                                 UPDATE round_items 
-                                SET description = ?, value = ?, output = ?
+                                SET description = ?, value = ?, output = ?, mode = ?
                                 WHERE id = ?
-                            ''', (edited_desc.strip(), edited_value.strip(), edited_output.strip(), item_id))
+                            ''', (edited_desc.strip(), 
+                                  edited_value.strip(), 
+                                  edited_output.strip(), 
+                                  edited_mode.strip(), 
+                                  item_id))
                             
                             updated_count += 1
                     
@@ -692,7 +788,6 @@ def process_edit_item_form_submission(save_changes, delete_item, unit_name, sect
                 st.write(f"Debug - Error deleting item: {str(e)}")
                 st.write(traceback.format_exc())
             st.error(f"Error: {str(e)}")
-
 
 def check_operator_logged_in():
     """

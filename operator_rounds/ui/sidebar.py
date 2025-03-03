@@ -37,6 +37,26 @@ def render_sidebar():
         else:
             render_operator_info()
 
+        st.write("---")
+        st.write("### Control Mode Colors")
+        st.markdown(
+            """
+            <div style="padding: 5px; background-color: rgba(255, 200, 87, 0.5); margin-bottom: 5px; color: white;">
+            <strong>Manual</strong> - Valve in MAN control
+            </div>
+            <div style="padding: 5px; background-color: rgba(74, 222, 128, 0.5); margin-bottom: 5px; color: white;">
+            <strong>Cascade</strong> - Valve in CASC control
+            </div>
+            <div style="padding: 5px; background-color: rgba(167, 139, 250, 0.5); margin-bottom: 5px; color: white;">
+            <strong>Auto-Init</strong> - Valve in AUTO-INIT control
+            </div>
+            <div style="padding: 5px; background-color: rgba(6, 214, 160, 0.5); margin-bottom: 5px; color: white;">
+            <strong>B-Cascade</strong> - Valve in BCAS control
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+
 def render_operator_login_form():
     """
     Render the operator login form for collecting operator name and shift.
@@ -122,10 +142,13 @@ def process_pending_sections(round_id):
                         for item in section_data.get("items", []):
                             c.execute('''
                                 INSERT INTO round_items 
-                                (section_id, description, value, output)
-                                VALUES (?, ?, ?, ?)
-                            ''', (section_id, item.get("description", ""), 
-                                item.get("value", ""), item.get("output", "")))
+                                (section_id, description, value, output, mode)
+                                VALUES (?, ?, ?, ?, ?)
+                            ''', (section_id, 
+                                  item.get("description", ""), 
+                                  item.get("value", ""), 
+                                  item.get("output", ""),
+                                  item.get("mode", "")))
                         
                         conn.commit()
                     except sqlite3.Error as e:
