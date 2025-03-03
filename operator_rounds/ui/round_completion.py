@@ -160,7 +160,7 @@ def render_round_completion(unit):
                     key=output_key
                 )
 
-                mode_options = ["", "Manual", "Auto", "Cascade"]
+                mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
                 current_mode = st.session_state[form_values_key].get(mode_key, item.get("mode", ""))
                 
                 # Find the index of the current mode, or 0 if not found

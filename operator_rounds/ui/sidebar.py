@@ -41,11 +41,17 @@ def render_sidebar():
         st.write("### Control Mode Colors")
         st.markdown(
             """
-            <div style="padding: 5px; background-color: #FFEB3B; margin-bottom: 5px; color: #000000;">
+            <div style="padding: 5px; background-color: rgba(255, 200, 87, 0.5); margin-bottom: 5px; color: white;">
             <strong>Manual</strong> - Valve in MAN control
             </div>
-            <div style="padding: 5px; background-color: #4bf252; margin-bottom: 5px; color: #000000;">
+            <div style="padding: 5px; background-color: rgba(74, 222, 128, 0.5); margin-bottom: 5px; color: white;">
             <strong>Cascade</strong> - Valve in CASC control
+            </div>
+            <div style="padding: 5px; background-color: rgba(167, 139, 250, 0.5); margin-bottom: 5px; color: white;">
+            <strong>Auto-Init</strong> - Valve in AUTO-INIT control
+            </div>
+            <div style="padding: 5px; background-color: rgba(6, 214, 160, 0.5); margin-bottom: 5px; color: white;">
+            <strong>B-Cascade</strong> - Valve in BCAS control
             </div>
             """, 
             unsafe_allow_html=True

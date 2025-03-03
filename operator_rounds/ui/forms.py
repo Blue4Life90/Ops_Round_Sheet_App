@@ -152,7 +152,7 @@ def create_item_form(unit_name, section_name, item=None, form_key=None):
 
 
         # Add mode selector for editing
-        mode_options = ["", "Manual", "Auto", "Cascade"]
+        mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
         current_mode = st.session_state[form_state_key].get("mode", "")
         
         # Find the index of the current mode, or 0 if not found
@@ -291,7 +291,7 @@ def create_multi_item_form(unit_name, section_name, items, form_key=None):
             )
 
             # Add mode selector for editing
-            mode_options = ["", "Manual", "Auto", "Cascade"]
+            mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
             current_mode = st.session_state[form_values_key].get(mode_key, item.get("mode", ""))
             
             # Find the index of the current mode, or 0 if not found

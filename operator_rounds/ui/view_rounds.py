@@ -319,9 +319,13 @@ def display_rounds(rounds_data):
                 # Define a row styling function
                 def style_row(row):
                     if row['Mode'] == 'Manual':
-                        return ['background-color: #FFEB3B'] * len(row)
+                        return ['background-color: rgba(255, 200, 87, 0.5); font-weight: bold;'] * len(row)
                     elif row['Mode'] == 'Cascade':
-                        return ['background-color: #A5D6A7'] * len(row)
+                        return ['background-color: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif row['Mode'] == 'Auto-Init':
+                        return ['background-color: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif row['Mode'] == 'B-Cascade':
+                        return ['background-color: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'] * len(row)
                     return [''] * len(row)
                 
                 # Apply styling row by row
@@ -422,9 +426,13 @@ def render_round_details(round_id):
                             # Define a row styling function
                             def style_row(row):
                                 if row['mode'] == 'Manual':
-                                    return ['background-color: #FFEB3B'] * len(row)
+                                    return ['background-color: rgba(255, 200, 87, 0.5); font-weight: bold;'] * len(row)
                                 elif row['mode'] == 'Cascade':
-                                    return ['background-color: #A5D6A7'] * len(row)
+                                    return ['background-color: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'] * len(row)
+                                elif row['mode'] == 'Auto-Init':
+                                    return ['background-color: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'] * len(row)
+                                elif row['mode'] == 'B-Cascade':
+                                    return ['background-color: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'] * len(row)
                                 return [''] * len(row)
 
                             # Apply styling row by row

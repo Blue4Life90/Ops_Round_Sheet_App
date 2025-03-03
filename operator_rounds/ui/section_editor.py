@@ -144,9 +144,13 @@ def render_section_content(unit_name, section_name, section_data):
                 # Create a styling function that returns a proper DataFrame
                 def highlight_mode(val, prop='background-color'):
                     if val == 'Manual':
-                        return f'{prop}: #FFDA00'  # Yellow
+                        return f'{prop}: rgba(255, 200, 87, 0.5); font-weight: bold; color: white;'  # Yellow
                     elif val == 'Cascade':
-                        return f'{prop}: #4CAF50'  # Green
+                        return f'{prop}: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'  # Green
+                    elif val == 'Auto-Init':
+                        return f'{prop}: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'  # Soft-Purple
+                    elif val == 'B-Cascade':
+                        return f'{prop}: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'  # Bright Turquoise
                     return ''
                 
                 # Apply styling using a standard pandas approach
@@ -159,9 +163,13 @@ def render_section_content(unit_name, section_name, section_data):
                 def highlight_row(row):
                     mode = row.get('mode', '')
                     if mode == 'Manual':
-                        return ['background-color: rgba(255, 218, 0, 0.5); font-weight: bold;'] * len(row)
+                        return ['background-color: rgba(255, 200, 87, 0.5); font-weight: bold; color: white;'] * len(row)
                     elif mode == 'Cascade':
-                        return ['background-color: rgba(76, 175, 80, 0.5); font-weight: bold; color: white;'] * len(row)
+                        return ['background-color: rgba(74, 222, 128, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif mode == 'Auto-Init':
+                        return ['background-color: rgba(167, 139, 250, 0.5); font-weight: bold; color: white;'] * len(row)
+                    elif mode == 'B-Cascade':
+                        return ['background-color: rgba(6, 214, 160, 0.5); font-weight: bold; color: white;'] * len(row)
                     return [''] * len(row)
                 
                 styled_df = styled_df.apply(highlight_row, axis=1)
@@ -233,7 +241,7 @@ def render_add_item_form(unit_name, section_name, section_data):
         )
 
         # Add mode selector for all items - keeping it optional
-        mode_options = ["", "Manual", "Auto", "Cascade"]
+        mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
         current_mode = st.session_state[form_input_key].get("mode", "")
         
         # Find the index of the current mode, or 0 if not found
@@ -473,7 +481,7 @@ def render_edit_items_interface(unit_name, section_name, section_data, items):
                     key=f"out_{form_state_key}"
                 )
 
-                mode_options = ["", "Manual", "Auto", "Cascade"]
+                mode_options = ["", "Manual", "Auto", "Cascade", "Auto-Init", "B-Cascade"]
                 current_mode = st.session_state[form_state_key].get("mode", "")
                 
                 # Find the index of the current mode, or 0 if not found
